@@ -89,19 +89,20 @@ class _PlacesAutocompleteOverlayState extends PlacesAutocompleteState {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    final headerTopLeftBorderRadius = widget.overlayBorderRadius != null ? 
-      widget.overlayBorderRadius.topLeft : Radius.circular(2);
+    final headerTopLeftBorderRadius = widget.overlayBorderRadius != null
+        ? widget.overlayBorderRadius.topLeft
+        : Radius.circular(2);
 
-    final headerTopRightBorderRadius = widget.overlayBorderRadius != null ? 
-      widget.overlayBorderRadius.topRight : Radius.circular(2);
+    final headerTopRightBorderRadius = widget.overlayBorderRadius != null
+        ? widget.overlayBorderRadius.topRight
+        : Radius.circular(2);
 
     final header = Column(children: <Widget>[
       Material(
           color: theme.dialogBackgroundColor,
           borderRadius: BorderRadius.only(
-            topLeft: headerTopLeftBorderRadius,
-            topRight: headerTopRightBorderRadius
-          ),
+              topLeft: headerTopLeftBorderRadius,
+              topRight: headerTopRightBorderRadius),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
@@ -128,11 +129,13 @@ class _PlacesAutocompleteOverlayState extends PlacesAutocompleteState {
 
     var body;
 
-    final bodyBottomLeftBorderRadius = widget.overlayBorderRadius != null ? 
-      widget.overlayBorderRadius.bottomLeft : Radius.circular(2);
+    final bodyBottomLeftBorderRadius = widget.overlayBorderRadius != null
+        ? widget.overlayBorderRadius.bottomLeft
+        : Radius.circular(2);
 
-    final bodyBottomRightBorderRadius = widget.overlayBorderRadius != null ? 
-      widget.overlayBorderRadius.bottomRight : Radius.circular(2);
+    final bodyBottomRightBorderRadius = widget.overlayBorderRadius != null
+        ? widget.overlayBorderRadius.bottomRight
+        : Radius.circular(2);
 
     if (_searching) {
       body = Stack(
@@ -186,9 +189,8 @@ class _PlacesAutocompleteOverlayState extends PlacesAutocompleteState {
   }
 
   Icon get _iconBack => Theme.of(context).platform == TargetPlatform.iOS
-      ? Icon(Icons.arrow_back_ios): Icon(Icons.arrow_back);
-
-
+      ? Icon(Icons.arrow_back_ios)
+      : Icon(Icons.arrow_back);
 
   Widget _textField(BuildContext context) => TextField(
         controller: _queryTextController,
@@ -378,10 +380,18 @@ abstract class PlacesAutocompleteState extends State<PlacesAutocompleteWidget> {
 
     _queryBehavior.stream
         .debounceTime(const Duration(milliseconds: 300))
-        .listen(doSearch);
+        .switchMap(doSearch)
+        .listen((PlacesAutocompleteResponse res) {
+      if (res.errorMessage?.isNotEmpty == true ||
+          res.status == "REQUEST_DENIED") {
+        onResponseError(res);
+      } else {
+        onResponse(res);
+      }
+    });
   }
 
-  Future<Null> doSearch(String value) async {
+  Stream<PlacesAutocompleteResponse> doSearch(String value) async* {
     if (mounted && value.isNotEmpty) {
       setState(() {
         _searching = true;
@@ -400,14 +410,7 @@ abstract class PlacesAutocompleteState extends State<PlacesAutocompleteWidget> {
         region: widget.region,
       );
 
-      if (res.errorMessage?.isNotEmpty == true ||
-          res.status == "REQUEST_DENIED") {
-        onResponseError(res);
-      } else {
-        onResponse(res);
-      }
-    } else {
-      onResponse(null);
+      yield res;
     }
   }
 
@@ -468,26 +471,27 @@ class PlacesAutocomplete {
       ValueChanged<PlacesAutocompleteResponse> onError,
       String proxyBaseUrl,
       Client httpClient,
-      String startText=""}) {
+      String startText = ""}) {
     final builder = (BuildContext ctx) => PlacesAutocompleteWidget(
-        apiKey: apiKey,
-        mode: mode,
-        overlayBorderRadius: overlayBorderRadius,
-        language: language,
-        sessionToken: sessionToken,
-        components: components,
-        types: types,
-        location: location,
-        radius: radius,
-        strictbounds: strictbounds,
-        region: region,
-        offset: offset,
-        hint: hint,
-        logo: logo,
-        onError: onError,
-        proxyBaseUrl: proxyBaseUrl,
-        httpClient: httpClient,
-        startText: startText,);
+          apiKey: apiKey,
+          mode: mode,
+          overlayBorderRadius: overlayBorderRadius,
+          language: language,
+          sessionToken: sessionToken,
+          components: components,
+          types: types,
+          location: location,
+          radius: radius,
+          strictbounds: strictbounds,
+          region: region,
+          offset: offset,
+          hint: hint,
+          logo: logo,
+          onError: onError,
+          proxyBaseUrl: proxyBaseUrl,
+          httpClient: httpClient,
+          startText: startText,
+        );
 
     if (mode == Mode.overlay) {
       return showDialog(context: context, builder: builder);
